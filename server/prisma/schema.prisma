@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id          Int          @id @default(autoincrement())
+  username    String       @unique
+  senha       String
+  entregas    Entrega[]
+  motoristas  Motorista[]
+  carros      Carro[]
+  manutencoes Manutencao[] // <--- NOVO
+}
+
+model Motorista {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  usuarioId Int
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  entregas  Entrega[]
+}
+
+model Carro {
+  id          Int          @id @default(autoincrement())
+  modelo      String
+  placa       String
+  usuarioId   Int
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  entregas    Entrega[]
+  manutencoes Manutencao[] // <--- NOVO
+}
+
+model Manutencao {
+  id         Int      @id @default(autoincrement())
+  titulo     String   // Ex: Alternador
+  observacao String?  // Ex: Troca da peça e mão de obra
+  valor      Float
+  data       DateTime
+  
+  carroId    Int
+  carro      Carro    @relation(fields: [carroId], references: [id], onDelete: Cascade)
+  
+  usuarioId  Int
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+}
+
+model Entrega {
+  id                 Int       @id @default(autoincrement())
+  nomeRota           String    @default("Rota Padrão")
+  dataRecebimento    DateTime?
+  dataEntrega        DateTime
+  valorEntrega       Float
+  valorPedagio       Float     @default(0)
+  valorAbastecimento Float     @default(0)
+  valorDiaria        Float     @default(0)
+  outrosGastos       Float     @default(0)
+  observacao         String?
+  usuarioId          Int
+  usuario            Usuario   @relation(fields: [usuarioId], references: [id])
+  motoristaId        Int
+  motorista          Motorista @relation(fields: [motoristaId], references: [id])
+  carroId            Int
+  carro              Carro     @relation(fields: [carroId], references: [id])
+}
