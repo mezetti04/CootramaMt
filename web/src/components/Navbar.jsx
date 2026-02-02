@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png'; // <--- 1. IMPORTANTE: O caminho da imagem
 
 function Navbar() {
   const navigate = useNavigate();
@@ -14,13 +15,33 @@ function Navbar() {
 
   const fecharMenu = () => setMenuAberto(false);
 
+  // Estilo para alinhar Logo + Texto
+  const brandStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px', // Espaço entre a logo e o texto
+    textDecoration: 'none',
+    color: 'inherit'
+  };
+
+  // Estilo da imagem
+  const logoStyle = {
+    height: '40px', // Altura fixa para não estourar a barra
+    width: 'auto',
+    borderRadius: '4px' // Opcional: deixa os cantos da logo arredondados
+  };
+
   return (
     <nav className="navbar">
       
       {/* 1. Logo e Botão Hambúrguer */}
       <div className="navbar-header">
         <div className="nav-brand">
-          <Link to="/" onClick={fecharMenu}>🚚 COOTRAMA MOTORISTAS</Link>
+          {/* Alterado para incluir a imagem */}
+          <Link to="/" onClick={fecharMenu} style={brandStyle}>
+            <img src={logo} alt="Logo Cootrama" style={logoStyle} />
+            <span>COOTRAMA MOTORISTAS</span>
+          </Link>
         </div>
         
         {/* Botão que só aparece no celular */}

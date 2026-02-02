@@ -132,7 +132,7 @@ function ListaEntregas() {
   return (
     <div className="container" style={{ maxWidth: '1000px' }}>
       <div className="page-header">
-        <h1>📦 Gerenciar Entregas</h1>
+        <h1>Gerenciar Entregas</h1>
         <Link to="/entregas/nova" className="btn-novo">+ Nova Entrega</Link>
       </div>
       

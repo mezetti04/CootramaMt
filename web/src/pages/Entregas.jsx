@@ -67,7 +67,7 @@ function Entregas() {
   return (
     <div className="container" style={{maxWidth: '800px'}}>
       <div className="page-header">
-        <h1>📦 Nova Entrega</h1>
+        <h1>Nova Entrega</h1>
         <button type="button" onClick={() => navigate('/entregas')} className="btn-cancelar" style={{width: 'auto', marginTop: 0}}>
           Voltar
         </button>

@@ -8,13 +8,24 @@ datasource db {
 }
 
 model Usuario {
-  id          Int          @id @default(autoincrement())
-  username    String       @unique
-  senha       String
-  entregas    Entrega[]
-  motoristas  Motorista[]
-  carros      Carro[]
-  manutencoes Manutencao[] // <--- NOVO
+  id            Int       @id @default(autoincrement())
+  nome          String    // Novo
+  email         String    @unique // Novo
+  cpf           String?   // Novo
+  username      String    @unique
+  senha         String
+  
+  // Campos para Recuperação de Senha
+  resetToken    String?   
+  resetTokenExp DateTime? 
+
+  createdAt     DateTime  @default(now())
+
+  // --- RELACIONAMENTOS (O que estava faltando) ---
+  motoristas    Motorista[]
+  carros        Carro[]
+  entregas      Entrega[]
+  manutencoes   Manutencao[]
 }
 
 model Motorista {

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 
 function Motoristas() {
-  const [motoristas, setMotoristas] = useState([]);
+  const [motoristas, setMotoristas] = useState([]); // Começa como lista vazia
+  const [erro, setErro] = useState(''); // Estado para guardar erros
   
-  // 1. URL DINÂMICA
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   const [showModal, setShowModal] = useState(false);
@@ -14,13 +14,29 @@ function Motoristas() {
     carregarMotoristas();
   }, []);
 
-  const carregarMotoristas = () => {
+  const carregarMotoristas = async () => {
     const token = localStorage.getItem('token');
-    // 2. FETCH COM URL VARIÁVEL
-    fetch(`${API_URL}/motoristas`, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(setMotoristas)
-      .catch(err => console.error(err));
+    try {
+        const res = await fetch(`${API_URL}/motoristas`, { 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+
+        const data = await res.json();
+
+        // BLINDAGEM: Verifica se é uma lista antes de salvar
+        if (Array.isArray(data)) {
+            setMotoristas(data);
+            setErro('');
+        } else {
+            // Se não for lista (ex: erro de token), define vazio e mostra erro no console
+            console.error("Erro ao carregar motoristas:", data);
+            setMotoristas([]);
+            if (data.erro) setErro(data.erro);
+        }
+    } catch (err) {
+        console.error("Erro de conexão:", err);
+        setErro("Falha na conexão com o servidor.");
+    }
   };
 
   const abrirModalCriacao = () => { setEditingId(null); setNome(''); setShowModal(true); };
@@ -29,25 +45,45 @@ function Motoristas() {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    // 3. URLs DINÂMICAS PARA POST E PUT
     const url = editingId ? `${API_URL}/motoristas/${editingId}` : `${API_URL}/motoristas`;
     const method = editingId ? 'PUT' : 'POST';
     const token = localStorage.getItem('token'); 
 
-    const res = await fetch(url, {
-      method: method,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ nome })
-    });
-    if (res.ok) { fecharModal(); carregarMotoristas(); } else { alert('Erro ao salvar'); }
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nome })
+        });
+
+        if (res.ok) { 
+            fecharModal(); 
+            carregarMotoristas(); 
+        } else { 
+            alert('Erro ao salvar'); 
+        }
+    } catch (error) {
+        alert('Erro de conexão');
+    }
   };
 
   const handleExcluir = async (id) => {
-    if (confirm('Tem certeza?')) {
+    if (confirm('Tem certeza? Isso pode apagar entregas vinculadas.')) {
       const token = localStorage.getItem('token'); 
-      // 4. FETCH DELETE COM URL VARIÁVEL
-      const res = await fetch(`${API_URL}/motoristas/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) carregarMotoristas(); else alert('Erro ao excluir.');
+      try {
+          const res = await fetch(`${API_URL}/motoristas/${id}`, { 
+              method: 'DELETE', 
+              headers: { 'Authorization': `Bearer ${token}` } 
+          });
+          
+          if (res.ok) {
+              carregarMotoristas(); 
+          } else {
+              alert('Não foi possível excluir (verifique se há entregas vinculadas).');
+          }
+      } catch (error) {
+          alert('Erro de conexão.');
+      }
     }
   };
 
@@ -55,18 +91,25 @@ function Motoristas() {
     <div className="container" style={{maxWidth: '800px'}}>
       
       <div className="page-header">
-        <h1>👷 Gerenciar Motoristas</h1>
+        <h1> Gerenciar Motoristas</h1>
         <button className="btn-novo" onClick={abrirModalCriacao}>+ Novo Motorista</button>
       </div>
+
+      {/* MENSAGEM DE ERRO VISUAL */}
+      {erro && (
+        <div style={{background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '5px', marginBottom: '20px'}}>
+            ⚠️ {erro}
+        </div>
+      )}
 
       <div className="lista-entregas">
         <div className="lista-header" style={{gridTemplateColumns: '1fr 1fr 100px'}}>
           <span>Nome do Motorista</span>
           <span style={{textAlign: 'center'}}>Viagens (Mês Atual)</span>
-          <span style={{textAlign: 'center'}}>Alterar/Apagar</span>
+          <span style={{textAlign: 'center'}}>Ações</span>
         </div>
 
-        {motoristas.length === 0 && <p style={{padding: 20}}>Nenhum motorista encontrado.</p>}
+        {motoristas.length === 0 && !erro && <p style={{padding: 20}}>Nenhum motorista encontrado.</p>}
 
         {motoristas.map(m => (
           <div key={m.id} className="lista-item">
@@ -77,7 +120,6 @@ function Motoristas() {
                 <span style={{fontWeight: 'bold'}}>{m.nome}</span>
               </span>
 
-              {/* --- MOSTRA VIAGENS DO MÊS --- */}
               <span style={{textAlign: 'center'}}>
                 <span className="mobile-label">Viagens:</span>
                 <span style={{
@@ -88,7 +130,7 @@ function Motoristas() {
                     fontWeight: 'bold',
                     fontSize: '0.9rem'
                 }}>
-                    {m.totalViagensMes} 🚚
+                    {m.totalViagensMes || 0} 🚚
                 </span>
               </span>
               

@@ -178,7 +178,7 @@ function Metricas() {
 
   return (
     <div className="container" style={{maxWidth: '1000px', paddingBottom: 50}}>
-      <h1>📈 Painel Financeiro</h1>
+      <h1>Painel Financeiro</h1>
 
       {/* ABAS */}
       <div className="abas-container">

@@ -9,20 +9,20 @@ function Home() {
       <div className="dashboard-grid">
         
         <Link to="/entregas" className="card card-destaque">
-          <h2>📦 Entregas</h2>
+          <h2>Entregas</h2>
         </Link>
 
         <Link to="/motoristas" className="card card-destaque">
-          <h2>👷 Motoristas</h2>
+          <h2>Motoristas</h2>
         </Link>
 
         <Link to="/carros" className="card card-destaque">
-          <h2>🚛  Veículos</h2>
+          <h2>Veículos</h2>
 
         </Link>
 
         <Link to="/metricas" className="card card-destaque">
-          <h2>📈 Consultar Desempenho</h2>
+          <h2>Consultar Desempenho</h2>
         </Link>
       </div>
     </div>

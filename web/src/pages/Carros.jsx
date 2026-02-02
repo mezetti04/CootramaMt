@@ -144,7 +144,7 @@ function Carros() {
       
       {/* CABEÇALHO */}
       <div className="page-header">
-        <h1>🚛 Gerenciar Veículos</h1>
+        <h1>Gerenciar Veículos</h1>
         <button className="btn-novo" onClick={() => {
             setEditingId(null);
             setFormCarro({ modelo: '', placa: '' });
