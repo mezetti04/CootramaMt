@@ -5,35 +5,33 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// --- CONFIGURAÇÃO DA CHAVE SECRETA (PADRONIZADA) ---
+// --- CONFIGURAÇÃO DA CHAVE SECRETA ---
 const SECRET = process.env.JWT_SECRET || 'chave-mestra-do-sistema-logistica';
 
-// --- CONFIGURAR O CARTEIRO (CORREÇÃO ANTI-TIMEOUT) ---
-// Mudamos de 'service: gmail' para a configuração manual da porta 587
-// Isso evita que o firewall do Render bloqueie o envio.
+// --- CONFIGURAR O CARTEIRO (CORREÇÃO TIMEOUT GMAIL) ---
+// Adicionamos 'family: 4' para forçar IPv4 e evitar bloqueios de rede no Render
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Deve ser false para porta 587
+  port: 465,       // Porta SSL direta (Mais robusta para nuvem)
+  secure: true,    // TRUE para porta 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  tls: {
-    rejectUnauthorized: false // Ajuda a evitar erros estritos de certificado na nuvem
-  },
-  connectionTimeout: 10000 // 10 segundos para desistir se travar
+  family: 4, // <--- O SEGREDO: Força IPv4 (Resolve o erro ETIMEDOUT)
+  logger: true, // Ativa logs detalhados do Nodemailer no console
+  debug: true   // Mostra o processo de conexão passo-a-passo
 });
 
 exports.registro = async (req, res) => {
-    // Melhoria: Remove espaços em branco e força minúsculo para evitar erros de digitação
     let { nome, email, cpf, username, senha } = req.body;
     
-    // Tratamento básico para evitar crash se vier nulo
+    // Validação básica
     if (!email || !username || !senha) {
         return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios.' });
     }
 
+    // Normalização (Minúsculo e sem espaços nas pontas)
     email = email.trim().toLowerCase();
     username = username.trim().toLowerCase();
 
@@ -47,18 +45,14 @@ exports.registro = async (req, res) => {
         res.status(201).json({ message: 'Usuário criado com sucesso!' });
 
     } catch (error) {
-        // --- O PULO DO GATO PARA O RENDER ---
-        // Isso vai imprimir o erro real no painel de logs do Render
         console.error("🚨 ERRO DETALHADO NO REGISTRO:", error);
 
-        // Erro P2002 = Violação de campo único (já existe no banco)
         if (error.code === 'P2002') {
             const campo = error.meta?.target || 'dados';
             return res.status(400).json({ erro: `Já existe um usuário com este ${campo}.` });
         }
         
-        // Outros erros (ex: banco desconectado, coluna faltando)
-        res.status(500).json({ erro: 'Erro interno ao criar usuário. Verifique os logs.' });
+        res.status(500).json({ erro: 'Erro interno ao criar usuário.' });
     }
 };
 
@@ -66,7 +60,6 @@ exports.login = async (req, res) => {
     let { username, senha } = req.body;
 
     try {
-        // Normaliza o username para garantir que ache mesmo se digitar com maiúscula
         const usernameBusca = username ? username.trim().toLowerCase() : '';
 
         const user = await prisma.usuario.findUnique({ where: { username: usernameBusca } });
@@ -75,7 +68,7 @@ exports.login = async (req, res) => {
         const isValid = await bcrypt.compare(senha, user.senha);
         if (!isValid) return res.status(401).json({ erro: 'Senha incorreta' });
 
-        // Token dura 7 dias
+        // Token válido por 7 dias
         const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
         
         res.json({ token, username: user.username, nome: user.nome });
@@ -94,8 +87,10 @@ exports.esqueciSenha = async (req, res) => {
         const user = await prisma.usuario.findUnique({ where: { email } });
         if (!user) return res.status(404).json({ erro: 'Email não encontrado.' });
 
+        // Gera token numérico de 6 dígitos
         const token = Math.floor(100000 + Math.random() * 900000).toString();
         
+        // Expira em 1 hora
         const agora = new Date();
         agora.setHours(agora.getHours() + 1);
 
@@ -107,14 +102,13 @@ exports.esqueciSenha = async (req, res) => {
         const mailOptions = {
             from: 'Sistema Logística <noreply@logistica.com>',
             to: email,
-            subject: 'Recuperação de Senha - Sistema Logística',
+            subject: 'Recuperação de Senha - Código de Verificação',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2>Recuperação de Senha</h2>
                     <p>Olá, <strong>${user.nome}</strong>!</p>
-                    <p>Você solicitou a troca de senha.</p>
-                    <p>Seu código de verificação é:</p>
-                    <h1 style="color: #2563eb; letter-spacing: 5px;">${token}</h1>
+                    <p>Use o código abaixo para redefinir sua senha:</p>
+                    <h1 style="color: #2563eb; letter-spacing: 5px; background: #f0f0f0; padding: 10px; display: inline-block;">${token}</h1>
                     <p>Este código expira em 1 hora.</p>
                     <hr>
                     <p style="font-size: 12px; color: #777;">Se não foi você, ignore este email.</p>
@@ -122,15 +116,17 @@ exports.esqueciSenha = async (req, res) => {
             `
         };
 
-        // Envio com a nova configuração
-        await transporter.sendMail(mailOptions);
-        console.log(`Email enviado para ${email}`);
+        console.log(`Tentando enviar email para ${email}...`);
+        
+        // Envio do email
+        const info = await transporter.sendMail(mailOptions);
+        
+        console.log(`✅ Email enviado! ID: ${info.messageId}`);
         res.json({ message: 'Email de recuperação enviado!' });
 
     } catch (error) {
-        // Logs detalhados para debug no Render
-        console.error("Erro no envio de email:", error);
-        res.status(500).json({ erro: 'Erro ao enviar email.' });
+        console.error("🚨 ERRO NO ENVIO DE EMAIL:", error);
+        res.status(500).json({ erro: 'Erro técnico ao enviar email. Tente novamente mais tarde.' });
     }
 };
 
@@ -140,7 +136,7 @@ exports.resetarSenha = async (req, res) => {
         const user = await prisma.usuario.findFirst({
             where: {
                 resetToken: token,
-                resetTokenExp: { gt: new Date() }
+                resetTokenExp: { gt: new Date() } // Verifica se ainda não expirou
             }
         });
 
