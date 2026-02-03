@@ -8,19 +8,24 @@ const nodemailer = require('nodemailer');
 // --- CONFIGURAÇÃO DA CHAVE SECRETA ---
 const SECRET = process.env.JWT_SECRET || 'chave-mestra-do-sistema-logistica';
 
-// --- CONFIGURAR O CARTEIRO (CORREÇÃO TIMEOUT GMAIL) ---
-// Adicionamos 'family: 4' para forçar IPv4 e evitar bloqueios de rede no Render
+// --- CONFIGURAR O CARTEIRO (Versão Final: Porta 587 + IPv4) ---
+// O Render bloqueia a porta 465, então usamos a 587 (STARTTLS).
+// Mantemos 'family: 4' para garantir que ele ache o IP certo do Google.
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,       // Porta SSL direta (Mais robusta para nuvem)
-  secure: true,    // TRUE para porta 465
+  port: 587,        // Porta padrão para envio em nuvem
+  secure: false,    // OBRIGATÓRIO ser false para porta 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  family: 4, // <--- O SEGREDO: Força IPv4 (Resolve o erro ETIMEDOUT)
-  logger: true, // Ativa logs detalhados do Nodemailer no console
-  debug: true   // Mostra o processo de conexão passo-a-passo
+  family: 4,        // Força IPv4 (Resolve erro de DNS/Rede)
+  tls: {
+    rejectUnauthorized: false // Evita erros de certificado SSL no Render
+  },
+  connectionTimeout: 10000, // Timeout de 10 segundos
+  logger: true,     // Logs para debug
+  debug: true
 });
 
 exports.registro = async (req, res) => {
@@ -31,7 +36,6 @@ exports.registro = async (req, res) => {
         return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios.' });
     }
 
-    // Normalização (Minúsculo e sem espaços nas pontas)
     email = email.trim().toLowerCase();
     username = username.trim().toLowerCase();
 
@@ -68,7 +72,6 @@ exports.login = async (req, res) => {
         const isValid = await bcrypt.compare(senha, user.senha);
         if (!isValid) return res.status(401).json({ erro: 'Senha incorreta' });
 
-        // Token válido por 7 dias
         const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
         
         res.json({ token, username: user.username, nome: user.nome });
@@ -87,10 +90,8 @@ exports.esqueciSenha = async (req, res) => {
         const user = await prisma.usuario.findUnique({ where: { email } });
         if (!user) return res.status(404).json({ erro: 'Email não encontrado.' });
 
-        // Gera token numérico de 6 dígitos
         const token = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Expira em 1 hora
         const agora = new Date();
         agora.setHours(agora.getHours() + 1);
 
@@ -118,7 +119,6 @@ exports.esqueciSenha = async (req, res) => {
 
         console.log(`Tentando enviar email para ${email}...`);
         
-        // Envio do email
         const info = await transporter.sendMail(mailOptions);
         
         console.log(`✅ Email enviado! ID: ${info.messageId}`);
@@ -136,7 +136,7 @@ exports.resetarSenha = async (req, res) => {
         const user = await prisma.usuario.findFirst({
             where: {
                 resetToken: token,
-                resetTokenExp: { gt: new Date() } // Verifica se ainda não expirou
+                resetTokenExp: { gt: new Date() }
             }
         });
 
