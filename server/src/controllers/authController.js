@@ -8,13 +8,21 @@ const nodemailer = require('nodemailer');
 // --- CONFIGURAÇÃO DA CHAVE SECRETA (PADRONIZADA) ---
 const SECRET = process.env.JWT_SECRET || 'chave-mestra-do-sistema-logistica';
 
-// --- CONFIGURAR O CARTEIRO (TRANSPORTER) ---
+// --- CONFIGURAR O CARTEIRO (CORREÇÃO ANTI-TIMEOUT) ---
+// Mudamos de 'service: gmail' para a configuração manual da porta 587
+// Isso evita que o firewall do Render bloqueie o envio.
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // Deve ser false para porta 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  tls: {
+    rejectUnauthorized: false // Ajuda a evitar erros estritos de certificado na nuvem
+  },
+  connectionTimeout: 10000 // 10 segundos para desistir se travar
 });
 
 exports.registro = async (req, res) => {
@@ -114,11 +122,13 @@ exports.esqueciSenha = async (req, res) => {
             `
         };
 
+        // Envio com a nova configuração
         await transporter.sendMail(mailOptions);
         console.log(`Email enviado para ${email}`);
         res.json({ message: 'Email de recuperação enviado!' });
 
     } catch (error) {
+        // Logs detalhados para debug no Render
         console.error("Erro no envio de email:", error);
         res.status(500).json({ erro: 'Erro ao enviar email.' });
     }
