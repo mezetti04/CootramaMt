@@ -77,12 +77,12 @@ function Entregas() {
         <h3 style={{marginTop: 0, color: '#2563eb'}}>Dados da Viagem</h3>
         
         <div className="form-group">
-          <label>Nome da Rota / Cidade Principal</label>
-          <input type="text" name="nomeRota" placeholder="Ex: Rota Sul - Pouso Alegre" value={formulario.nomeRota} onChange={handleChange} required />
+          <label>Numero da Rota / Cidade Principal</label>
+          <input type="text" name="nomeRota" placeholder="Ex: 11111 - Pouso Alegre" value={formulario.nomeRota} onChange={handleChange} required />
         </div>
 
         <div className="form-group">
-          <label>Data de Entrega</label>
+          <label>Data do Acerto</label>
           <input type="date" name="dataEntrega" onChange={handleChange} required />
         </div>
 

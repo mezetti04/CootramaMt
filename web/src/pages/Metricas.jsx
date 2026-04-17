@@ -248,7 +248,7 @@ function Metricas() {
 
       {/* GRÁFICO 1: PRODUÇÃO x GASTOS (Operacional) */}
       <div className="grafico-container" style={{marginBottom: 30}}>
-        <h3 style={{marginLeft: 20, marginTop: 10, color: '#475569'}}>📊 Produção x Gastos (Data da Viagem)</h3>
+        <h3 style={{marginLeft: 20, marginTop: 10, color: '#475569'}}>📊 Produção x Gastos (Data do Acerto)</h3>
         {dadosOp.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={dadosOp} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
