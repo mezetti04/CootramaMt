@@ -138,7 +138,7 @@ function ListaEntregas() {
       
       <div className="lista-entregas">
         <div className="lista-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr 120px', gap: '10px', alignItems: 'center' }}>
-          <span>Data Entrega</span>
+          <span>Data Acerto</span>
           <span>Rota</span>
           <span>Motorista</span>
           <span style={{textAlign: 'right', paddingRight: '15px'}}>Lucro Líquido</span>
