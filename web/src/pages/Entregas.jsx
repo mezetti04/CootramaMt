@@ -14,6 +14,7 @@ function Entregas() {
     motoristaId: '',
     carroId: '',
     dataEntrega: '',
+    dataRecebimento: '', // <--- 1. NOVO CAMPO ADICIONADO AO ESTADO
     valorEntrega: '',
     valorPedagio: '',
     valorAbastecimento: '',
@@ -25,11 +26,9 @@ function Entregas() {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    // 2. BUSCA MOTORISTAS COM URL VARIÁVEL
     fetch(`${API_URL}/motoristas`, { headers })
       .then(res => res.json()).then(setMotoristas).catch(console.error);
 
-    // 3. BUSCA CARROS COM URL VARIÁVEL
     fetch(`${API_URL}/carros`, { headers })
       .then(res => res.json()).then(setCarros).catch(console.error);
   }, []);
@@ -44,11 +43,11 @@ function Entregas() {
     
     const dadosParaEnviar = { 
         ...formulario, 
-        dataRecebimento: null,
+        // 2. SE ESTIVER VAZIO MANDA NULL, SE ESTIVER PREENCHIDO MANDA A DATA
+        dataRecebimento: formulario.dataRecebimento ? formulario.dataRecebimento : null,
         valorDiaria: parseFloat(formulario.valorDiaria || 0) 
     };
 
-    // 4. ENVIA ENTREGA COM URL VARIÁVEL
     fetch(`${API_URL}/entregas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -83,12 +82,18 @@ function Entregas() {
 
         <div className="form-group">
           <label>Data do Acerto</label>
-          <input type="date" name="dataEntrega" onChange={handleChange} required />
+          <input type="date" name="dataEntrega" value={formulario.dataEntrega} onChange={handleChange} required />
+        </div>
+
+        {/* 3. NOVO CAMPO VISUAL ADICIONADO AQUI */}
+        <div className="form-group">
+          <label style={{color: '#059669'}}>Data do Pagamento (Opcional)</label>
+          <input type="date" name="dataRecebimento" value={formulario.dataRecebimento} onChange={handleChange} />
         </div>
 
         <div className="form-group">
           <label>Motorista</label>
-          <select name="motoristaId" onChange={handleChange} required>
+          <select name="motoristaId" value={formulario.motoristaId} onChange={handleChange} required>
             <option value="">Selecione...</option>
             {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
           </select>
@@ -96,7 +101,7 @@ function Entregas() {
 
         <div className="form-group">
           <label>Veículo Utilizado</label>
-          <select name="carroId" onChange={handleChange} required>
+          <select name="carroId" value={formulario.carroId} onChange={handleChange} required>
             <option value="">Selecione...</option>
             {carros.map(c => <option key={c.id} value={c.id}>{c.modelo} - {c.placa}</option>)}
           </select>
@@ -123,7 +128,6 @@ function Entregas() {
             </div>
         </div>
 
-        {/* --- CAMPO DE DIÁRIA --- */}
         <div className="form-group">
            <label style={{color: '#dc2626'}}>👨‍✈️ Diária Motorista (R$)</label>
            <input type="number" step="0.01" name="valorDiaria" value={formulario.valorDiaria} onChange={handleChange} />
